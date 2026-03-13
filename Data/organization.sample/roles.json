@@ -1,0 +1,17 @@
+[
+  {
+    "title": "UX Designer",
+    "department": "Design",
+    "description": "User experience design and research"
+  },
+  {
+    "title": "Frontend Engineer",
+    "department": "Engineering",
+    "description": "Web and mobile frontend development"
+  },
+  {
+    "title": "Product Manager",
+    "department": "Product",
+    "description": "Product strategy and delivery management"
+  }
+]

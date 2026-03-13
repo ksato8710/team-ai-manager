@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Alice Chen",
+    "email": "alice.chen@example.com",
+    "role": "UX Designer",
+    "grade": "ic",
+    "avatarUrl": null,
+    "status": "active",
+    "bio": "Interaction designer with 4 years of experience in fintech and healthcare products.",
+    "specializations": ["Mobile UX", "Accessibility"]
+  },
+  {
+    "name": "Bob Martinez",
+    "email": "bob.martinez@example.com",
+    "role": "Frontend Engineer",
+    "grade": "lead",
+    "avatarUrl": null,
+    "status": "active",
+    "bio": "Full-stack leaning frontend engineer passionate about design systems and performance.",
+    "specializations": ["Design Systems", "Performance Optimization"]
+  },
+  {
+    "name": "Carol Tanaka",
+    "email": "carol.tanaka@example.com",
+    "role": "Product Manager",
+    "grade": "principal",
+    "avatarUrl": null,
+    "status": "active",
+    "bio": "Product strategist experienced in B2B SaaS and platform businesses.",
+    "specializations": ["B2B SaaS", "Platform Strategy"]
+  }
+]

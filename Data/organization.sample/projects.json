@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Mobile Banking Redesign",
+    "client": "Acme Financial",
+    "status": "active",
+    "phase": "design",
+    "serviceType": "digital_product_ux",
+    "description": "End-to-end redesign of the consumer mobile banking app focusing on onboarding and payments.",
+    "startDate": "2026-01-15",
+    "endDate": "2026-06-30"
+  },
+  {
+    "name": "Patient Portal Discovery",
+    "client": "GreenLeaf Health",
+    "status": "discovery",
+    "phase": "research",
+    "serviceType": "business_service_design",
+    "description": "Discovery engagement to map patient journeys and identify opportunities for a new self-service portal.",
+    "startDate": "2026-03-01",
+    "endDate": null
+  }
+]

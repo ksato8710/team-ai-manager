@@ -1,0 +1,18 @@
+[
+  {
+    "entityType": "member",
+    "entityId": null,
+    "insightType": "workload_alert",
+    "title": "Alice Chen nearing full allocation",
+    "content": "Alice Chen is allocated at 100% across two projects (80% Mobile Banking Redesign + 20% Patient Portal Discovery). Any additional assignment will exceed capacity.",
+    "confidence": 0.92
+  },
+  {
+    "entityType": "project",
+    "entityId": null,
+    "insightType": "skill_gap",
+    "title": "Patient Portal Discovery lacks frontend capability",
+    "content": "The Patient Portal Discovery team has no frontend engineering allocation. If the project moves to prototyping phase, consider assigning Bob Martinez or another engineer.",
+    "confidence": 0.78
+  }
+]

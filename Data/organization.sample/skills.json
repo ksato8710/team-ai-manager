@@ -1,0 +1,62 @@
+[
+  {
+    "name": "User Research",
+    "category": "research",
+    "description": "Planning and conducting user research to inform design decisions",
+    "levelDefinitions": [
+      { "level": 1, "title": "Beginner", "description": "Can assist with basic interview note-taking and survey distribution" },
+      { "level": 2, "title": "Practitioner", "description": "Can plan and conduct structured interviews and usability tests with guidance" },
+      { "level": 3, "title": "Intermediate", "description": "Independently designs research plans, selects methods, and synthesizes findings" },
+      { "level": 4, "title": "Advanced", "description": "Leads complex mixed-method studies and mentors others in research practices" },
+      { "level": 5, "title": "Expert", "description": "Defines org-wide research strategy and introduces novel methodologies" }
+    ]
+  },
+  {
+    "name": "UI Design",
+    "category": "design",
+    "description": "Visual and interaction design for digital products",
+    "levelDefinitions": [
+      { "level": 1, "title": "Beginner", "description": "Can create simple layouts following an existing design system" },
+      { "level": 2, "title": "Practitioner", "description": "Produces polished screens and components with some supervision" },
+      { "level": 3, "title": "Intermediate", "description": "Designs end-to-end flows, maintains design systems, and ensures consistency" },
+      { "level": 4, "title": "Advanced", "description": "Creates and evolves design systems, sets visual direction for products" },
+      { "level": 5, "title": "Expert", "description": "Industry-recognized craft excellence; defines design language at scale" }
+    ]
+  },
+  {
+    "name": "React",
+    "category": "tech",
+    "description": "Building user interfaces with React and its ecosystem",
+    "levelDefinitions": [
+      { "level": 1, "title": "Beginner", "description": "Understands JSX, props, and state; can build simple components" },
+      { "level": 2, "title": "Practitioner", "description": "Works with hooks, context, and common libraries in a team codebase" },
+      { "level": 3, "title": "Intermediate", "description": "Architects component hierarchies, manages complex state, and optimizes performance" },
+      { "level": 4, "title": "Advanced", "description": "Designs reusable libraries, implements advanced patterns, and mentors the team" },
+      { "level": 5, "title": "Expert", "description": "Deep framework internals knowledge; drives technical strategy across projects" }
+    ]
+  },
+  {
+    "name": "Stakeholder Management",
+    "category": "business",
+    "description": "Engaging and aligning stakeholders throughout a project lifecycle",
+    "levelDefinitions": [
+      { "level": 1, "title": "Beginner", "description": "Participates in stakeholder meetings and takes notes" },
+      { "level": 2, "title": "Practitioner", "description": "Prepares presentations and facilitates small alignment sessions" },
+      { "level": 3, "title": "Intermediate", "description": "Manages competing priorities across multiple stakeholder groups" },
+      { "level": 4, "title": "Advanced", "description": "Navigates complex organizational politics and drives executive buy-in" },
+      { "level": 5, "title": "Expert", "description": "Shapes client relationships at C-level and influences strategic direction" }
+    ]
+  },
+  {
+    "name": "Prototyping",
+    "category": "design",
+    "description": "Creating interactive prototypes to validate concepts and communicate design intent",
+    "levelDefinitions": [
+      { "level": 1, "title": "Beginner", "description": "Builds basic click-through prototypes in Figma or similar tools" },
+      { "level": 2, "title": "Practitioner", "description": "Creates multi-screen prototypes with realistic interactions" },
+      { "level": 3, "title": "Intermediate", "description": "Produces high-fidelity prototypes with animations and conditional logic" },
+      { "level": 4, "title": "Advanced", "description": "Builds code-based prototypes and selects the right fidelity for each context" },
+      { "level": 5, "title": "Expert", "description": "Pioneers new prototyping techniques and tools for the organization" }
+    ]
+  }
+]

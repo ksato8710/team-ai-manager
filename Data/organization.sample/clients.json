@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Acme Financial",
+    "industry": "fintech",
+    "domain": "Digital banking and payment solutions",
+    "relationshipStatus": "active",
+    "website": "https://acmefinancial.example.com"
+  },
+  {
+    "name": "GreenLeaf Health",
+    "industry": "healthcare",
+    "domain": "Patient engagement and telehealth platforms",
+    "relationshipStatus": "prospect",
+    "website": null
+  }
+]

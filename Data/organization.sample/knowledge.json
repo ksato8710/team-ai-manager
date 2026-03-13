@@ -1,0 +1,16 @@
+[
+  {
+    "title": "Fintech Onboarding Best Practices",
+    "content": "Key findings from three onboarding redesign projects: progressive disclosure reduces drop-off by 35%, biometric setup in-flow increases security adoption, and a clear progress indicator improves completion rates.",
+    "category": "case_study",
+    "author": "Carol Tanaka",
+    "isPublished": true
+  },
+  {
+    "title": "Design Review Process",
+    "content": "All design deliverables go through a two-stage review: peer critique followed by stakeholder sign-off. Use the shared Figma template for critique sessions. Reviewers should focus on usability heuristics, accessibility compliance, and brand consistency.",
+    "category": "process",
+    "author": null,
+    "isPublished": true
+  }
+]

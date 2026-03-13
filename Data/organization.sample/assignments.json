@@ -1,0 +1,18 @@
+{
+  "projectMembers": [
+    { "project": "Mobile Banking Redesign", "member": "Alice Chen", "roleInProject": "Lead Designer", "allocationPct": 80 },
+    { "project": "Mobile Banking Redesign", "member": "Bob Martinez", "roleInProject": "Frontend Lead", "allocationPct": 60 },
+    { "project": "Mobile Banking Redesign", "member": "Carol Tanaka", "roleInProject": "Product Owner", "allocationPct": 40 },
+    { "project": "Patient Portal Discovery", "member": "Carol Tanaka", "roleInProject": "Engagement Lead", "allocationPct": 30 },
+    { "project": "Patient Portal Discovery", "member": "Alice Chen", "roleInProject": "UX Researcher", "allocationPct": 20 }
+  ],
+  "memberSkills": [
+    { "member": "Alice Chen", "skill": "User Research", "proficiency": 4 },
+    { "member": "Alice Chen", "skill": "UI Design", "proficiency": 3 },
+    { "member": "Alice Chen", "skill": "Prototyping", "proficiency": 4 },
+    { "member": "Bob Martinez", "skill": "React", "proficiency": 5 },
+    { "member": "Bob Martinez", "skill": "Prototyping", "proficiency": 2 },
+    { "member": "Carol Tanaka", "skill": "Stakeholder Management", "proficiency": 5 },
+    { "member": "Carol Tanaka", "skill": "User Research", "proficiency": 3 }
+  ]
+}

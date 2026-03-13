@@ -1,0 +1,20 @@
+# Build
+.build/
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# SQLite database
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Organization-specific data (real member/client/project data)
+Data/organization/
+
+# IDE
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
