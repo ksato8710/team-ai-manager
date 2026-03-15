@@ -19,13 +19,15 @@ Design organization management tool built as a native macOS app with AI-powered 
 - **Scanners** - Configurable data source integrations (Figma, GitHub, Slack, Jira, Notion, etc.)
 
 ### Tools
-- **Project Planning** - AI-facilitated project charter creation via side-by-side chat + document UI. Supports voice input (Japanese). Generates structured 13-section project charters through multi-turn dialogue with Claude.
+- **Project Planning** - AI-facilitated project charter creation via side-by-side chat + document UI. Supports voice input (Japanese). Generates structured 13-section project charters through multi-turn dialogue. Supports **Claude Code CLI** and **OpenAI Codex CLI** as AI backends (switchable in Settings).
 
 ## Requirements
 
 - **macOS 14.0** (Sonoma) or later
 - **Swift 5.9+**
-- **Claude Code CLI** - Required for the Project Planning tool's AI features. Install from [claude.ai/download](https://claude.ai/download)
+- **AI CLI** (at least one) - Required for the Project Planning tool's AI features:
+  - [Claude Code CLI](https://claude.ai/download) - Anthropic's CLI (subscription auth)
+  - [OpenAI Codex CLI](https://github.com/openai/codex) - OpenAI's CLI
 
 ## Setup
 
@@ -82,16 +84,22 @@ swift build
 .build/debug/TeamAIManager
 ```
 
-### 4. (Optional) Claude Code CLI setup
+### 4. (Optional) AI CLI setup
 
-The Project Planning tool uses the Claude Code CLI for AI-powered charter creation. The app looks for the `claude` command in these locations:
+The Project Planning tool requires an AI CLI for charter creation. Install at least one:
 
-1. `~/.local/bin/claude`
-2. `/usr/local/bin/claude`
-3. `~/.claude/local/claude`
-4. Anywhere in your `PATH`
+**Claude Code CLI:**
+```bash
+# Install and sign in with your Anthropic subscription
+# See: https://claude.ai/download
+```
 
-Install Claude Code CLI and sign in with your subscription. No API key is needed.
+**OpenAI Codex CLI:**
+```bash
+npm install -g @openai/codex
+```
+
+The app automatically detects installed CLIs by searching common paths (`~/.local/bin/`, `/usr/local/bin/`, etc.) and `PATH`. You can switch between backends in **Settings > AI**.
 
 ## Data Storage
 
@@ -101,7 +109,7 @@ All data is stored locally in a SQLite database:
 ~/Library/Application Support/TeamAIManager/team_ai_manager.sqlite
 ```
 
-No data is sent to remote servers. The only external call is from the Project Planning tool to the local Claude Code CLI.
+No data is sent to remote servers. The only external call is from the Project Planning tool to the locally installed AI CLI (Claude Code or Codex).
 
 ## Architecture
 
@@ -131,7 +139,7 @@ Sources/
 **Tech Stack:**
 - SwiftUI (macOS native)
 - GRDB.swift (SQLite ORM)
-- Claude Code CLI (AI features)
+- Claude Code CLI / OpenAI Codex CLI (AI features, selectable)
 - Speech framework (voice input)
 
 ## License

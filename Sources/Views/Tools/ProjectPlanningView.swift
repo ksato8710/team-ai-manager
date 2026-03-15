@@ -244,7 +244,7 @@ struct ProjectPlanningContent: View {
                             HStack {
                                 ProgressView()
                                     .scaleEffect(0.7)
-                                Text("考え中...")
+                                Text("\(AIBackend.current.displayName) で生成中...")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Spacer()

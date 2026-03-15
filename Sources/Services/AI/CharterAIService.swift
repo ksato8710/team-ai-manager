@@ -99,13 +99,13 @@ final class CharterAIService: ObservableObject {
             return
         }
 
-        // Call Claude via local CLI
+        // Call AI CLI
         isGenerating = true
         errorMessage = nil
 
         Task.detached { [weak self] in
             do {
-                let response = try await self?.callClaudeCLI(sectionTarget: sectionTarget)
+                let response = try await self?.callAICLI(sectionTarget: sectionTarget)
                 await MainActor.run {
                     guard let self, let response else { return }
                     self.appendAssistantMessage(response.message, sectionTarget: response.sectionTarget)
@@ -166,7 +166,7 @@ final class CharterAIService: ObservableObject {
         return doc
     }
 
-    // MARK: - Claude CLI Call
+    // MARK: - AI CLI Call
 
     private struct AIResponse {
         let message: String
@@ -174,7 +174,7 @@ final class CharterAIService: ObservableObject {
         let sectionUpdates: [CharterSection: String]
     }
 
-    private func callClaudeCLI(sectionTarget: CharterSection?) async throws -> AIResponse {
+    private func callAICLI(sectionTarget: CharterSection?) async throws -> AIResponse {
         let systemPrompt = await MainActor.run { buildSystemPrompt(sectionTarget: sectionTarget) }
         let conversationMessages = await MainActor.run { messages }
 
@@ -186,20 +186,27 @@ final class CharterAIService: ObservableObject {
         }
         fullPrompt += "上記の会話の最後のユーザーメッセージに対して回答してください。"
 
-        // Find claude CLI: check common locations
-        let claudePath = Self.resolveClaudeCLIPath()
+        // Resolve CLI path for selected backend
+        let backend = AIBackend.current
+        guard let cliPath = CLIResolver.resolve(backend) else {
+            throw CharterAIError.cliNotFound(backend: backend)
+        }
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: claudePath)
-        process.arguments = [
-            "-p", fullPrompt,
-            "--model", "opus",
-            "--output-format", "json"
-        ]
+        process.executableURL = URL(fileURLWithPath: cliPath)
 
-        // Remove ANTHROPIC_API_KEY to use subscription auth
+        switch backend {
+        case .claude:
+            process.arguments = ["-p", fullPrompt, "--output-format", "json"]
+        case .codex:
+            process.arguments = ["-p", fullPrompt, "--output-format", "json"]
+        }
+
         var env = ProcessInfo.processInfo.environment
-        env.removeValue(forKey: "ANTHROPIC_API_KEY")
+        // For Claude: remove API key to use subscription auth
+        if backend == .claude {
+            env.removeValue(forKey: "ANTHROPIC_API_KEY")
+        }
         process.environment = env
 
         let stdout = Pipe()
@@ -219,32 +226,13 @@ final class CharterAIService: ObservableObject {
             throw CharterAIError.cliError(message: errString.isEmpty ? outputString : errString)
         }
 
-        // Parse JSON output from claude CLI
-        let responseText: String
-        if let json = try? JSONSerialization.jsonObject(with: outputData) as? [String: Any],
-           let result = json["result"] as? String {
-            // Check for CLI-level errors
-            if let isError = json["is_error"] as? Bool, isError {
-                throw CharterAIError.cliError(message: result)
-            }
-            // Log model usage for debugging
-            if let cost = json["total_cost_usd"] as? Double {
-                print("[CharterAI] Claude response received. Cost: $\(String(format: "%.4f", cost))")
-            }
-            if let duration = json["duration_api_ms"] as? Int {
-                print("[CharterAI] API duration: \(duration)ms")
-            }
-            responseText = result
-        } else {
-            // Fallback: use raw output
-            responseText = outputString.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        // Parse response (both CLIs support JSON output)
+        let responseText = Self.parseJSONResponse(outputData) ?? outputString.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !responseText.isEmpty else {
             throw CharterAIError.emptyResponse
         }
 
-        // Parse section updates from response
         let sectionUpdates = parseSectionUpdates(from: responseText)
 
         return AIResponse(
@@ -254,28 +242,39 @@ final class CharterAIService: ObservableObject {
         )
     }
 
-    private static func resolveClaudeCLIPath() -> String {
-        let candidates = [
-            "\(NSHomeDirectory())/.local/bin/claude",
-            "/usr/local/bin/claude",
-            "\(NSHomeDirectory())/.claude/local/claude",
-        ]
-        for path in candidates {
-            if FileManager.default.isExecutableFile(atPath: path) {
-                return path
-            }
+    /// Parse JSON response from CLI (shared format for Claude / Codex)
+    private static func parseJSONResponse(_ data: Data) -> String? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
         }
-        // Fallback: rely on PATH via `which`
-        let which = Process()
-        which.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        which.arguments = ["claude"]
-        let pipe = Pipe()
-        which.standardOutput = pipe
-        try? which.run()
-        which.waitUntilExit()
-        let result = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return result.isEmpty ? candidates[0] : result
+
+        // Claude format
+        if let result = json["result"] as? String {
+            if let isError = json["is_error"] as? Bool, isError {
+                return nil
+            }
+            if let cost = json["total_cost_usd"] as? Double {
+                print("[AI] Response received. Cost: $\(String(format: "%.4f", cost))")
+            }
+            if let duration = json["duration_api_ms"] as? Int {
+                print("[AI] API duration: \(duration)ms")
+            }
+            return result
+        }
+
+        // Codex format
+        if let choices = json["choices"] as? [[String: Any]],
+           let first = choices.first,
+           let message = first["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content
+        }
+
+        // Generic: try "output" or "text" keys
+        if let output = json["output"] as? String { return output }
+        if let text = json["text"] as? String { return text }
+
+        return nil
     }
 
     private func buildSystemPrompt(sectionTarget: CharterSection?) -> String {
@@ -451,15 +450,18 @@ final class CharterAIService: ObservableObject {
 // MARK: - Error Types
 
 enum CharterAIError: LocalizedError {
+    case cliNotFound(backend: AIBackend)
     case cliError(message: String)
     case emptyResponse
 
     var errorDescription: String? {
         switch self {
+        case .cliNotFound(let backend):
+            return "\(backend.displayName) CLI が見つかりません。インストールされているか確認してください。"
         case .cliError(let message):
-            return "Claude CLI エラー: \(message)"
+            return "AI CLI エラー: \(message)"
         case .emptyResponse:
-            return "Claude からの応答が空でした。"
+            return "AI からの応答が空でした。"
         }
     }
 }

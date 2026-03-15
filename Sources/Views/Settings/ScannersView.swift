@@ -200,7 +200,7 @@ struct SettingsView: View {
                     Label("AI", systemImage: "brain")
                 }
         }
-        .frame(width: 500, height: 300)
+        .frame(width: 520, height: 400)
     }
 }
 
@@ -219,16 +219,73 @@ struct GeneralSettingsView: View {
 }
 
 struct AISettingsView: View {
-    @AppStorage("claudeApiKey") private var claudeApiKey = ""
+    @AppStorage("aiBackend") private var selectedBackend = AIBackend.claude.rawValue
+    @State private var cliStatus: [AIBackend: Bool] = [:]
+
+    private var backend: AIBackend {
+        AIBackend(rawValue: selectedBackend) ?? .claude
+    }
 
     var body: some View {
         Form {
-            SecureField("Claude API Key", text: $claudeApiKey)
-            Text("Used for AI-powered scanning, analysis, and recommendations.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Section("AI Provider") {
+                Picker("使用する AI CLI", selection: $selectedBackend) {
+                    ForEach(AIBackend.allCases) { b in
+                        Text(b.displayName).tag(b.rawValue)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+                .onChange(of: selectedBackend) { _, newValue in
+                    if let b = AIBackend(rawValue: newValue) {
+                        AIBackend.current = b
+                    }
+                }
+
+                ForEach(AIBackend.allCases) { b in
+                    HStack {
+                        Text(b.displayName)
+                            .font(.subheadline)
+                        Spacer()
+                        if let available = cliStatus[b] {
+                            if available {
+                                Label("インストール済み", systemImage: "checkmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                            } else {
+                                Label("未検出", systemImage: "xmark.circle")
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
+                        } else {
+                            ProgressView().scaleEffect(0.6)
+                        }
+                    }
+                }
+            }
+
+            Section("CLI パス情報") {
+                if let path = CLIResolver.resolve(backend) {
+                    LabeledContent("検出パス", value: path)
+                        .font(.subheadline)
+                } else {
+                    Text("\(backend.displayName) が見つかりません。\nインストール後、アプリを再起動してください。")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Text("検索順: \(backend.searchPaths.joined(separator: ", "))、PATH")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear { checkCLIs() }
+    }
+
+    private func checkCLIs() {
+        for b in AIBackend.allCases {
+            cliStatus[b] = CLIResolver.isAvailable(b)
+        }
     }
 }
