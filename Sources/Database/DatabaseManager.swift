@@ -199,11 +199,46 @@ final class DatabaseManager: Sendable {
             try db.create(table: "skill_level_definitions") { t in
                 t.autoIncrementedPrimaryKey("id")
                 t.column("skill_id", .integer).notNull().references("skills", onDelete: .cascade)
-                t.column("level", .integer).notNull() // 1-5
+                t.column("level", .integer).notNull()
                 t.column("title", .text).notNull()
                 t.column("level_description", .text).notNull()
                 t.uniqueKey(["skill_id", "level"])
             }
+        }
+
+        migrator.registerMigration("v3_project_charters") { db in
+            try db.create(table: "project_charters") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("project_id", .integer).references("projects", onDelete: .setNull)
+                t.column("title", .text).notNull()
+                t.column("status", .text).notNull().defaults(to: "draft")
+                t.column("summary", .text)
+                t.column("background", .text)
+                t.column("objectives", .text)
+                t.column("scope", .text)
+                t.column("target_users", .text)
+                t.column("success_criteria", .text)
+                t.column("constraints", .text)
+                t.column("deliverables", .text)
+                t.column("team", .text)
+                t.column("schedule", .text)
+                t.column("risks", .text)
+                t.column("design_principles", .text)
+                t.column("approval_process", .text)
+                t.column("full_document", .text)
+                t.column("created_at", .text).notNull().defaults(sql: "(datetime('now'))")
+                t.column("updated_at", .text).notNull().defaults(sql: "(datetime('now'))")
+            }
+
+            try db.create(table: "charter_conversations") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("charter_id", .integer).notNull().references("project_charters", onDelete: .cascade)
+                t.column("role", .text).notNull()
+                t.column("content", .text).notNull()
+                t.column("section_target", .text)
+                t.column("created_at", .text).notNull().defaults(sql: "(datetime('now'))")
+            }
+            try db.create(indexOn: "charter_conversations", columns: ["charter_id"])
         }
 
         return migrator

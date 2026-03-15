@@ -39,6 +39,20 @@ struct ContentView: View {
             AIInsightsView()
         case .scanners:
             ScannersView()
+        case .projectPlanning:
+            ProjectPlanningView()
+        case .assignmentAnalysis:
+            ToolPlaceholderView(
+                title: "Assignment Analysis",
+                icon: "person.crop.rectangle.stack",
+                description: "メンバーの稼働状況とスキルに基づくアサイン見通し分析。プロジェクト間のリソース配分を最適化します。"
+            )
+        case .companyAnalysis:
+            ToolPlaceholderView(
+                title: "Company Analysis",
+                icon: "chart.bar.xaxis",
+                description: "全社プロジェクトの横断分析。稼働率、スキル分布、リスクの全体像を可視化します。"
+            )
         case .docAbout:
             DocAboutView()
         case .docDataModel:
@@ -73,6 +87,12 @@ struct SidebarView: View {
                 sidebarItem(.scanners)
             }
 
+            Section("Tools") {
+                sidebarItem(.projectPlanning)
+                sidebarItem(.assignmentAnalysis)
+                sidebarItem(.companyAnalysis)
+            }
+
             Section("Doc") {
                 sidebarItem(.docAbout)
                 sidebarItem(.docDataModel)
@@ -86,5 +106,38 @@ struct SidebarView: View {
     private func sidebarItem(_ section: SidebarSection) -> some View {
         Label(section.rawValue, systemImage: section.icon)
             .tag(section)
+    }
+}
+
+// MARK: - Tool Placeholder
+struct ToolPlaceholderView: View {
+    let title: String
+    let icon: String
+    let description: String
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text(title)
+                .font(.title2)
+                .fontWeight(.bold)
+            Text(description)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 400)
+            Text("Coming Soon")
+                .font(.caption)
+                .fontWeight(.medium)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(Color.orange.opacity(0.15))
+                .foregroundStyle(.orange)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 }

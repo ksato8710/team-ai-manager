@@ -10,11 +10,13 @@ final class AppState: ObservableObject {
     let database: DatabaseManager
     let scannerManager: ScannerManager
     let aiService: AIService
+    let charterService: CharterAIService
 
     init() {
         self.database = DatabaseManager.shared
         self.scannerManager = ScannerManager(database: DatabaseManager.shared)
         self.aiService = AIService(database: DatabaseManager.shared)
+        self.charterService = CharterAIService(database: DatabaseManager.shared)
     }
 }
 
@@ -27,6 +29,11 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case knowledge = "Knowledge"
     case aiInsights = "AI Insights"
     case scanners = "Scanners"
+    // Tools
+    case projectPlanning = "Project Planning"
+    case assignmentAnalysis = "Assignment Analysis"
+    case companyAnalysis = "Company Analysis"
+    // Doc
     case docAbout = "About"
     case docDataModel = "Data Model"
 
@@ -42,6 +49,9 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .knowledge: return "book"
         case .aiInsights: return "brain"
         case .scanners: return "antenna.radiowaves.left.and.right"
+        case .projectPlanning: return "list.clipboard"
+        case .assignmentAnalysis: return "person.crop.rectangle.stack"
+        case .companyAnalysis: return "chart.bar.xaxis"
         case .docAbout: return "info.circle"
         case .docDataModel: return "cylinder.split.1x2"
         }
