@@ -186,8 +186,8 @@ final class CharterAIService: ObservableObject {
         }
         fullPrompt += "上記の会話の最後のユーザーメッセージに対して回答してください。"
 
-        // Find claude CLI
-        let claudePath = "/Users/satokeita/.local/bin/claude"
+        // Find claude CLI: check common locations
+        let claudePath = Self.resolveClaudeCLIPath()
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: claudePath)
@@ -252,6 +252,30 @@ final class CharterAIService: ObservableObject {
             sectionTarget: sectionTarget ?? sectionUpdates.keys.first,
             sectionUpdates: sectionUpdates
         )
+    }
+
+    private static func resolveClaudeCLIPath() -> String {
+        let candidates = [
+            "\(NSHomeDirectory())/.local/bin/claude",
+            "/usr/local/bin/claude",
+            "\(NSHomeDirectory())/.claude/local/claude",
+        ]
+        for path in candidates {
+            if FileManager.default.isExecutableFile(atPath: path) {
+                return path
+            }
+        }
+        // Fallback: rely on PATH via `which`
+        let which = Process()
+        which.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        which.arguments = ["claude"]
+        let pipe = Pipe()
+        which.standardOutput = pipe
+        try? which.run()
+        which.waitUntilExit()
+        let result = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return result.isEmpty ? candidates[0] : result
     }
 
     private func buildSystemPrompt(sectionTarget: CharterSection?) -> String {
