@@ -180,6 +180,11 @@ struct ProjectDetailView: View {
     let client: Client?
     @EnvironmentObject var appState: AppState
     @State private var assignedMembers: [(ProjectMember, Member)] = []
+    @State private var totalAllocations: [Int64: Int] = [:]
+
+    private var projectTotalAllocation: Int {
+        assignedMembers.reduce(0) { $0 + $1.0.allocationPct }
+    }
 
     var body: some View {
         ScrollView {
@@ -235,34 +240,24 @@ struct ProjectDetailView: View {
 
                 // Team
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Team (\(assignedMembers.count))")
-                        .font(.headline)
+                    TeamStructureHeader(
+                        memberCount: assignedMembers.count,
+                        totalAllocation: projectTotalAllocation,
+                        label: "体制"
+                    )
+
                     if assignedMembers.isEmpty {
-                        Text("No members assigned yet.")
+                        Text("メンバーが割り当てられていません")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(assignedMembers, id: \.1.id) { pm, member in
-                            HStack(spacing: 12) {
-                                AvatarView(name: member.name, size: 32)
-                                VStack(alignment: .leading) {
-                                    Text(member.name)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                    if let role = pm.roleInProject {
-                                        Text(role)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                Spacer()
-                                Text("\(pm.allocationPct)%")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.blue)
-                            }
-                            .padding(8)
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            TeamMemberCard(
+                                member: member,
+                                roleInProject: pm.roleInProject,
+                                allocationPct: pm.allocationPct,
+                                totalAllocationPct: totalAllocations[member.id ?? 0] ?? pm.allocationPct
+                            )
                         }
                     }
                 }
@@ -276,15 +271,24 @@ struct ProjectDetailView: View {
     private func loadDetails() {
         guard let id = project.id else { return }
         do {
-            assignedMembers = try appState.database.read { db in
+            (assignedMembers, totalAllocations) = try appState.database.read { db in
                 let pm = try ProjectMember
                     .filter(ProjectMember.Columns.projectId == id)
                     .filter(ProjectMember.Columns.isActive == true)
                     .fetchAll(db)
-                return try pm.compactMap { assignment in
+                let members = try pm.compactMap { assignment -> (ProjectMember, Member)? in
                     guard let member = try Member.fetchOne(db, id: assignment.memberId) else { return nil }
                     return (assignment, member)
                 }
+                // Sort by grade descending, then allocation descending
+                let sorted = members.sorted { a, b in
+                    if a.1.grade.sortOrder != b.1.grade.sortOrder {
+                        return a.1.grade.sortOrder > b.1.grade.sortOrder
+                    }
+                    return a.0.allocationPct > b.0.allocationPct
+                }
+                let allocs = try TeamDataQuery.fetchTotalAllocations(db: db)
+                return (sorted, allocs)
             }
         } catch {
             print("Load project details error: \(error)")

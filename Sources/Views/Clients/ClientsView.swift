@@ -116,6 +116,8 @@ struct ClientDetailView: View {
     @EnvironmentObject var appState: AppState
     @State private var projects: [Project] = []
     @State private var selectedProject: Project?
+    @State private var clientTeam: [(Member, [(Project, ProjectMember)])] = []
+    @State private var totalAllocations: [Int64: Int] = [:]
 
     var body: some View {
         ScrollView {
@@ -163,6 +165,33 @@ struct ClientDetailView: View {
                             .font(.body)
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                // Team Structure
+                if !clientTeam.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        TeamStructureHeader(
+                            memberCount: clientTeam.count,
+                            totalAllocation: clientTeam.reduce(0) { sum, item in
+                                sum + item.1.reduce(0) { $0 + $1.1.allocationPct }
+                            },
+                            label: "体制"
+                        )
+
+                        Text("\(clientTeam.count)名が \(projects.count) プロジェクトに参画中")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        ForEach(clientTeam, id: \.0.id) { member, assignments in
+                            ClientTeamMemberCard(
+                                member: member,
+                                assignments: assignments,
+                                totalAllocationPct: totalAllocations[member.id ?? 0] ?? 0
+                            )
+                        }
+                    }
+
+                    Divider()
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -215,6 +244,11 @@ struct ClientDetailView: View {
         do {
             projects = try appState.database.read { db in
                 try Project.filter(Project.Columns.clientId == id).order(Project.Columns.status).fetchAll(db)
+            }
+            (clientTeam, totalAllocations) = try appState.database.read { db in
+                let team = try TeamDataQuery.fetchClientTeam(db: db, clientId: id)
+                let allocs = try TeamDataQuery.fetchTotalAllocations(db: db)
+                return (team, allocs)
             }
         } catch {
             print("Load client projects error: \(error)")
