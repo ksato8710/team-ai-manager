@@ -72,6 +72,7 @@ struct Project: Identifiable, Codable, Hashable {
     var endDate: String?
     var budgetHours: Double?
     var tags: String? // JSON array
+    var slackChannelId: String?
     var createdAt: String?
     var updatedAt: String?
 
@@ -85,6 +86,7 @@ struct Project: Identifiable, Codable, Hashable {
         case endDate = "end_date"
         case budgetHours = "budget_hours"
         case tags
+        case slackChannelId = "slack_channel_id"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -106,6 +108,7 @@ extension Project: FetchableRecord, MutablePersistableRecord {
         case serviceType = "service_type", description
         case startDate = "start_date", endDate = "end_date"
         case budgetHours = "budget_hours", tags
+        case slackChannelId = "slack_channel_id"
         case createdAt = "created_at", updatedAt = "updated_at"
     }
 
@@ -121,6 +124,7 @@ extension Project: FetchableRecord, MutablePersistableRecord {
         container["end_date"] = endDate
         container["budget_hours"] = budgetHours
         container["tags"] = tags
+        container["slack_channel_id"] = slackChannelId
         if let createdAt { container["created_at"] = createdAt }
         if let updatedAt { container["updated_at"] = updatedAt }
     }

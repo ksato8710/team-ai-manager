@@ -241,6 +241,23 @@ final class DatabaseManager: Sendable {
             try db.create(indexOn: "charter_conversations", columns: ["charter_id"])
         }
 
+        migrator.registerMigration("v5_slack_integration") { db in
+            try db.alter(table: "projects") { t in
+                t.add(column: "slack_channel_id", .text)
+            }
+            try db.alter(table: "clients") { t in
+                t.add(column: "slack_channel_id", .text)
+            }
+            try db.create(table: "slack_config") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("bot_token", .text).notNull()
+                t.column("workspace_name", .text)
+                t.column("is_active", .boolean).notNull().defaults(to: true)
+                t.column("created_at", .text).notNull().defaults(sql: "(datetime('now'))")
+                t.column("updated_at", .text).notNull().defaults(sql: "(datetime('now'))")
+            }
+        }
+
         migrator.registerMigration("v4_monthly_allocations") { db in
             try db.create(table: "project_member_allocations") { t in
                 t.autoIncrementedPrimaryKey("id")

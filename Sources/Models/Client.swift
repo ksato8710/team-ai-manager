@@ -33,6 +33,7 @@ struct Client: Identifiable, Codable, Hashable {
     var relationshipStatus: RelationshipStatus
     var notes: String?
     var website: String?
+    var slackChannelId: String?
     var createdAt: String?
     var updatedAt: String?
 
@@ -43,6 +44,7 @@ struct Client: Identifiable, Codable, Hashable {
         case contactPhone = "contact_phone"
         case relationshipStatus = "relationship_status"
         case notes, website
+        case slackChannelId = "slack_channel_id"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -57,6 +59,7 @@ extension Client: FetchableRecord, MutablePersistableRecord {
         case contactPhone = "contact_phone"
         case relationshipStatus = "relationship_status"
         case notes, website
+        case slackChannelId = "slack_channel_id"
         case createdAt = "created_at", updatedAt = "updated_at"
     }
 
@@ -71,6 +74,7 @@ extension Client: FetchableRecord, MutablePersistableRecord {
         container["relationship_status"] = relationshipStatus
         container["notes"] = notes
         container["website"] = website
+        container["slack_channel_id"] = slackChannelId
         if let createdAt { container["created_at"] = createdAt }
         if let updatedAt { container["updated_at"] = updatedAt }
     }

@@ -11,12 +11,14 @@ final class AppState: ObservableObject {
     let scannerManager: ScannerManager
     let aiService: AIService
     let charterService: CharterAIService
+    let slackAgent: SlackAIAgent
 
     init() {
         self.database = DatabaseManager.shared
         self.scannerManager = ScannerManager(database: DatabaseManager.shared)
         self.aiService = AIService(database: DatabaseManager.shared)
         self.charterService = CharterAIService(database: DatabaseManager.shared)
+        self.slackAgent = SlackAIAgent(database: DatabaseManager.shared)
     }
 }
 

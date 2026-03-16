@@ -199,8 +199,12 @@ struct SettingsView: View {
                 .tabItem {
                     Label("AI", systemImage: "brain")
                 }
+            SlackSettingsView()
+                .tabItem {
+                    Label("Slack", systemImage: "message")
+                }
         }
-        .frame(width: 520, height: 400)
+        .frame(width: 560, height: 450)
     }
 }
 
@@ -321,6 +325,126 @@ struct AISettingsView: View {
     private func checkCLIs() {
         for b in AIBackend.allCases {
             cliStatus[b] = CLIResolver.isAvailable(b)
+        }
+    }
+}
+
+// MARK: - Slack Settings
+
+struct SlackSettingsView: View {
+    @State private var botToken = ""
+    @State private var workspaceName = ""
+    @State private var isTesting = false
+    @State private var statusMessage: String?
+    @State private var statusIsError = false
+    @State private var isConfigured = false
+
+    var body: some View {
+        Form {
+            Section("Slack Bot 設定") {
+                SecureField("Bot Token (xoxb-...)", text: $botToken)
+                TextField("ワークスペース名（任意）", text: $workspaceName)
+
+                HStack(spacing: 12) {
+                    Button("接続テスト") { testConnection() }
+                        .disabled(botToken.isEmpty || isTesting)
+
+                    Button("保存") { saveConfig() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(botToken.isEmpty)
+
+                    if isTesting {
+                        ProgressView().scaleEffect(0.6)
+                    }
+                }
+
+                if let msg = statusMessage {
+                    Label(msg, systemImage: statusIsError ? "xmark.circle" : "checkmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(statusIsError ? .red : .green)
+                }
+            }
+
+            Section("必要な Bot 権限（OAuth Scopes）") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("channels:history — パブリックチャネルのメッセージ読取")
+                    Text("channels:read — パブリックチャネル情報の取得")
+                    Text("groups:history — プライベートチャネルのメッセージ読取")
+                    Text("groups:read — プライベートチャネル情報の取得")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            if isConfigured {
+                Section("ステータス") {
+                    Label("Slack 連携が設定されています", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.subheadline)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+        .onAppear { loadConfig() }
+    }
+
+    private func loadConfig() {
+        do {
+            let config = try DatabaseManager.shared.read { db in
+                try SlackConfig.current(db: db)
+            }
+            if let config {
+                botToken = config.botToken
+                workspaceName = config.workspaceName ?? ""
+                isConfigured = true
+            }
+        } catch {
+            print("Load Slack config error: \(error)")
+        }
+    }
+
+    private func saveConfig() {
+        do {
+            try DatabaseManager.shared.write { db in
+                try SlackConfig.saveConfig(db: db, botToken: botToken, workspaceName: workspaceName.isEmpty ? nil : workspaceName)
+            }
+            isConfigured = true
+            statusMessage = "保存しました"
+            statusIsError = false
+        } catch {
+            statusMessage = "保存に失敗: \(error.localizedDescription)"
+            statusIsError = true
+        }
+    }
+
+    private func testConnection() {
+        isTesting = true
+        statusMessage = nil
+        Task {
+            do {
+                let client = SlackAPIClient(botToken: botToken)
+                let auth = try await client.testAuth()
+                await MainActor.run {
+                    if auth.ok {
+                        statusMessage = "接続成功: \(auth.team ?? "Unknown workspace")"
+                        statusIsError = false
+                        if workspaceName.isEmpty, let team = auth.team {
+                            workspaceName = team
+                        }
+                    } else {
+                        statusMessage = "認証に失敗しました"
+                        statusIsError = true
+                    }
+                    isTesting = false
+                }
+            } catch {
+                await MainActor.run {
+                    statusMessage = "エラー: \(error.localizedDescription)"
+                    statusIsError = true
+                    isTesting = false
+                }
+            }
         }
     }
 }

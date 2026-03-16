@@ -182,6 +182,10 @@ struct ProjectDetailView: View {
     /// (ProjectMember, Member, effectiveAllocationPct for current month)
     @State private var assignedMembers: [(ProjectMember, Member, Int)] = []
     @State private var totalAllocations: [Int64: Int] = [:]
+    @State private var showingSlackEdit = false
+    @State private var slackChannelId = ""
+    @State private var slackResult: SlackAnalysisResult?
+    @State private var slackSyncing = false
 
     private var projectTotalAllocation: Int {
         assignedMembers.reduce(0) { $0 + $1.2 }
@@ -239,6 +243,18 @@ struct ProjectDetailView: View {
                     }
                 }
 
+                // Slack
+                SlackSectionView(
+                    channelId: project.slackChannelId,
+                    isSyncing: slackSyncing,
+                    result: slackResult,
+                    onEdit: {
+                        slackChannelId = project.slackChannelId ?? ""
+                        showingSlackEdit = true
+                    },
+                    onSync: { syncSlack() }
+                )
+
                 // Team
                 VStack(alignment: .leading, spacing: 8) {
                     TeamStructureHeader(
@@ -267,6 +283,30 @@ struct ProjectDetailView: View {
         }
         .onAppear { loadDetails() }
         .onChange(of: project) { loadDetails() }
+        .sheet(isPresented: $showingSlackEdit) {
+            SlackChannelEditSheet(channelId: $slackChannelId) { newId in
+                var updated = project
+                updated.slackChannelId = newId.isEmpty ? nil : newId
+                try? appState.database.write { db in try updated.update(db) }
+            }
+        }
+    }
+
+    private func syncSlack() {
+        slackSyncing = true
+        slackResult = nil
+        Task {
+            do {
+                let result = try await appState.slackAgent.syncProject(project)
+                slackResult = result
+            } catch {
+                slackResult = SlackAnalysisResult(
+                    summary: "エラー: \(error.localizedDescription)",
+                    statusUpdate: nil, keyTopics: [], actionItems: [], risks: []
+                )
+            }
+            slackSyncing = false
+        }
     }
 
     private func loadDetails() {

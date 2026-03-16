@@ -118,6 +118,10 @@ struct ClientDetailView: View {
     @State private var selectedProject: Project?
     @State private var clientTeam: [(Member, [(Project, ProjectMember, Int)])] = []
     @State private var totalAllocations: [Int64: Int] = [:]
+    @State private var showingSlackEdit = false
+    @State private var slackChannelId = ""
+    @State private var slackResult: SlackAnalysisResult?
+    @State private var slackSyncing = false
 
     var body: some View {
         ScrollView {
@@ -166,6 +170,20 @@ struct ClientDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                // Slack
+                SlackSectionView(
+                    channelId: client.slackChannelId,
+                    isSyncing: slackSyncing,
+                    result: slackResult,
+                    onEdit: {
+                        slackChannelId = client.slackChannelId ?? ""
+                        showingSlackEdit = true
+                    },
+                    onSync: { syncSlack() }
+                )
+
+                Divider()
 
                 // Team Structure
                 if !clientTeam.isEmpty {
@@ -222,6 +240,13 @@ struct ClientDetailView: View {
         }
         .onAppear { loadProjects() }
         .onChange(of: client) { loadProjects() }
+        .sheet(isPresented: $showingSlackEdit) {
+            SlackChannelEditSheet(channelId: $slackChannelId) { newId in
+                var updated = client
+                updated.slackChannelId = newId.isEmpty ? nil : newId
+                try? appState.database.write { db in try updated.update(db) }
+            }
+        }
         .sheet(item: $selectedProject) { project in
             ProjectDetailSheet(project: project, client: client)
                 .environmentObject(appState)
@@ -236,6 +261,23 @@ struct ClientDetailView: View {
         case .onHold: return .orange
         case .completed: return .gray
         case .cancelled: return .red
+        }
+    }
+
+    private func syncSlack() {
+        slackSyncing = true
+        slackResult = nil
+        Task {
+            do {
+                let result = try await appState.slackAgent.syncClient(client)
+                slackResult = result
+            } catch {
+                slackResult = SlackAnalysisResult(
+                    summary: "エラー: \(error.localizedDescription)",
+                    statusUpdate: nil, keyTopics: [], actionItems: [], risks: []
+                )
+            }
+            slackSyncing = false
         }
     }
 
