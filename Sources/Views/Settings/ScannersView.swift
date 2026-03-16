@@ -340,32 +340,57 @@ struct SlackSettingsView: View {
     @State private var isConfigured = false
 
     var body: some View {
-        Form {
-            Section("Slack Bot 設定") {
-                SecureField("Bot Token (xoxb-...)", text: $botToken)
-                TextField("ワークスペース名（任意）", text: $workspaceName)
+        VStack(alignment: .leading, spacing: 20) {
+            // Bot Token
+            GroupBox("Slack Bot 設定") {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Bot Token")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        SecureField("xoxb-xxxx-xxxx-xxxx", text: $botToken)
+                            .textFieldStyle(.roundedBorder)
+                    }
 
-                HStack(spacing: 12) {
-                    Button("接続テスト") { testConnection() }
-                        .disabled(botToken.isEmpty || isTesting)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("ワークスペース名（任意）")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        TextField("例: My Workspace", text: $workspaceName)
+                            .textFieldStyle(.roundedBorder)
+                    }
 
-                    Button("保存") { saveConfig() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(botToken.isEmpty)
+                    HStack(spacing: 12) {
+                        Button("接続テスト") { testConnection() }
+                            .disabled(botToken.isEmpty || isTesting)
 
-                    if isTesting {
-                        ProgressView().scaleEffect(0.6)
+                        Button("保存") { saveConfig() }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(botToken.isEmpty)
+
+                        if isTesting {
+                            ProgressView().scaleEffect(0.6)
+                        }
+
+                        Spacer()
+
+                        if isConfigured {
+                            Label("設定済み", systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+                    }
+
+                    if let msg = statusMessage {
+                        Label(msg, systemImage: statusIsError ? "xmark.circle" : "checkmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(statusIsError ? .red : .green)
                     }
                 }
-
-                if let msg = statusMessage {
-                    Label(msg, systemImage: statusIsError ? "xmark.circle" : "checkmark.circle")
-                        .font(.caption)
-                        .foregroundStyle(statusIsError ? .red : .green)
-                }
+                .padding(8)
             }
 
-            Section("必要な Bot 権限（OAuth Scopes）") {
+            GroupBox("必要な Bot 権限（OAuth Scopes）") {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("channels:history — パブリックチャネルのメッセージ読取")
                     Text("channels:read — パブリックチャネル情報の取得")
@@ -374,18 +399,10 @@ struct SlackSettingsView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            }
-
-            if isConfigured {
-                Section("ステータス") {
-                    Label("Slack 連携が設定されています", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.subheadline)
-                }
+                .padding(8)
             }
         }
-        .formStyle(.grouped)
-        .padding()
+        .padding(20)
         .onAppear { loadConfig() }
     }
 
