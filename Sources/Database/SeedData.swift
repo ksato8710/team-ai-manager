@@ -64,6 +64,7 @@ struct SeedData {
             try db.execute(sql: "DELETE FROM ai_insights")
             try db.execute(sql: "DELETE FROM activity_logs")
             try db.execute(sql: "DELETE FROM knowledge")
+            try db.execute(sql: "DELETE FROM project_member_allocations")
             try db.execute(sql: "DELETE FROM project_members")
             try db.execute(sql: "DELETE FROM member_skills")
             try db.execute(sql: "DELETE FROM skill_level_definitions")
@@ -299,11 +300,16 @@ struct SeedData {
         db: Database, from dir: URL,
         memberIds: [String: Int64], skillIds: [String: Int64], projectIds: [String: Int64]
     ) throws {
+        struct MonthlyAllocationJSON: Decodable {
+            let yearMonth: String
+            let allocationPct: Int
+        }
         struct ProjectMemberJSON: Decodable {
             let project: String
             let member: String
             let roleInProject: String?
             let allocationPct: Int?
+            let monthlyAllocations: [MonthlyAllocationJSON]?
         }
         struct MemberSkillJSON: Decodable {
             let member: String
@@ -317,6 +323,7 @@ struct SeedData {
         let data = try loadJSON(AssignmentsJSON.self, from: dir, file: "assignments.json")
 
         var pmCount = 0
+        var maCount = 0
         for item in data.projectMembers {
             guard let pId = projectIds[item.project], let mId = memberIds[item.member] else { continue }
             var pm = ProjectMember(
@@ -327,6 +334,22 @@ struct SeedData {
             )
             try pm.insert(db)
             pmCount += 1
+
+            // Seed monthly allocations if provided
+            if let monthlyAllocs = item.monthlyAllocations, let pmId = pm.id {
+                for ma in monthlyAllocs {
+                    var alloc = ProjectMemberAllocation(
+                        projectMemberId: pmId,
+                        yearMonth: ma.yearMonth,
+                        allocationPct: ma.allocationPct
+                    )
+                    try alloc.insert(db)
+                    maCount += 1
+                }
+            }
+        }
+        if maCount > 0 {
+            print("SEED: \(maCount) monthly allocations")
         }
 
         var msCount = 0

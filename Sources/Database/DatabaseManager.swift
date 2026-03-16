@@ -241,6 +241,18 @@ final class DatabaseManager: Sendable {
             try db.create(indexOn: "charter_conversations", columns: ["charter_id"])
         }
 
+        migrator.registerMigration("v4_monthly_allocations") { db in
+            try db.create(table: "project_member_allocations") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("project_member_id", .integer).notNull().references("project_members", onDelete: .cascade)
+                t.column("year_month", .text).notNull() // "2026-03"
+                t.column("allocation_pct", .integer).notNull()
+                t.uniqueKey(["project_member_id", "year_month"])
+            }
+            try db.create(indexOn: "project_member_allocations", columns: ["project_member_id"])
+            try db.create(indexOn: "project_member_allocations", columns: ["year_month"])
+        }
+
         return migrator
     }
 }

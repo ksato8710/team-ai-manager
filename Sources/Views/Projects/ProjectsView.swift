@@ -179,11 +179,12 @@ struct ProjectDetailView: View {
     let project: Project
     let client: Client?
     @EnvironmentObject var appState: AppState
-    @State private var assignedMembers: [(ProjectMember, Member)] = []
+    /// (ProjectMember, Member, effectiveAllocationPct for current month)
+    @State private var assignedMembers: [(ProjectMember, Member, Int)] = []
     @State private var totalAllocations: [Int64: Int] = [:]
 
     private var projectTotalAllocation: Int {
-        assignedMembers.reduce(0) { $0 + $1.0.allocationPct }
+        assignedMembers.reduce(0) { $0 + $1.2 }
     }
 
     var body: some View {
@@ -251,12 +252,12 @@ struct ProjectDetailView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     } else {
-                        ForEach(assignedMembers, id: \.1.id) { pm, member in
+                        ForEach(assignedMembers, id: \.1.id) { pm, member, effectivePct in
                             TeamMemberCard(
                                 member: member,
                                 roleInProject: pm.roleInProject,
-                                allocationPct: pm.allocationPct,
-                                totalAllocationPct: totalAllocations[member.id ?? 0] ?? pm.allocationPct
+                                allocationPct: effectivePct,
+                                totalAllocationPct: totalAllocations[member.id ?? 0] ?? effectivePct
                             )
                         }
                     }
@@ -270,24 +271,25 @@ struct ProjectDetailView: View {
 
     private func loadDetails() {
         guard let id = project.id else { return }
+        let month = ProjectMemberAllocation.currentYearMonth
         do {
             (assignedMembers, totalAllocations) = try appState.database.read { db in
-                let pm = try ProjectMember
+                let pms = try ProjectMember
                     .filter(ProjectMember.Columns.projectId == id)
                     .filter(ProjectMember.Columns.isActive == true)
                     .fetchAll(db)
-                let members = try pm.compactMap { assignment -> (ProjectMember, Member)? in
+                let members = try pms.compactMap { assignment -> (ProjectMember, Member, Int)? in
                     guard let member = try Member.fetchOne(db, id: assignment.memberId) else { return nil }
-                    return (assignment, member)
+                    let effectivePct = try TeamDataQuery.effectiveAllocation(db: db, pm: assignment, yearMonth: month)
+                    return (assignment, member, effectivePct)
                 }
-                // Sort by grade descending, then allocation descending
                 let sorted = members.sorted { a, b in
                     if a.1.grade.sortOrder != b.1.grade.sortOrder {
                         return a.1.grade.sortOrder > b.1.grade.sortOrder
                     }
-                    return a.0.allocationPct > b.0.allocationPct
+                    return a.2 > b.2
                 }
-                let allocs = try TeamDataQuery.fetchTotalAllocations(db: db)
+                let allocs = try TeamDataQuery.fetchTotalAllocations(db: db, yearMonth: month)
                 return (sorted, allocs)
             }
         } catch {

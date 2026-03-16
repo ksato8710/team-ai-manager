@@ -100,11 +100,12 @@ struct TeamMemberCard: View {
 
 struct ClientTeamMemberCard: View {
     let member: Member
-    let assignments: [(Project, ProjectMember)]
+    /// (Project, ProjectMember, effectiveAllocationPct for this month)
+    let assignments: [(Project, ProjectMember, Int)]
     let totalAllocationPct: Int
 
     private var clientAllocationPct: Int {
-        assignments.reduce(0) { $0 + $1.1.allocationPct }
+        assignments.reduce(0) { $0 + $1.2 }
     }
 
     var body: some View {
@@ -125,7 +126,7 @@ struct ClientTeamMemberCard: View {
             }
 
             // Per-project breakdown
-            ForEach(assignments, id: \.1.id) { project, pm in
+            ForEach(assignments, id: \.1.id) { project, pm, effectivePct in
                 HStack(spacing: 8) {
                     Rectangle()
                         .fill(Color.accentColor.opacity(0.3))
@@ -148,8 +149,8 @@ struct ClientTeamMemberCard: View {
 
                     Spacer()
 
-                    AllocationBar(percentage: pm.allocationPct, width: 40)
-                    Text("\(pm.allocationPct)%")
+                    AllocationBar(percentage: effectivePct, width: 40)
+                    Text("\(effectivePct)%")
                         .font(.caption)
                         .foregroundStyle(.blue)
                         .frame(width: 30, alignment: .trailing)
@@ -194,30 +195,30 @@ struct TeamStructureHeader: View {
 // MARK: - Data Query Helpers
 
 enum TeamDataQuery {
-    /// Fetch total allocation % for each member across all active projects
-    static func fetchTotalAllocations(db: Database) throws -> [Int64: Int] {
-        let rows = try Row.fetchAll(db, sql: """
-            SELECT member_id, SUM(allocation_pct) as total
-            FROM project_members
-            WHERE is_active = 1
-            GROUP BY member_id
-            """)
-        var result: [Int64: Int] = [:]
-        for row in rows {
-            let memberId: Int64 = row["member_id"]
-            let total: Int = row["total"]
-            result[memberId] = total
-        }
-        return result
+    /// Fetch total allocation % for each member across all active projects for a given month.
+    /// Uses monthly overrides if available, falls back to project_members.allocation_pct.
+    static func fetchTotalAllocations(db: Database, yearMonth: String? = nil) throws -> [Int64: Int] {
+        let month = yearMonth ?? ProjectMemberAllocation.currentYearMonth
+        return try ProjectMemberAllocation.fetchMonthlyTotalAllocations(db: db, yearMonth: month)
     }
 
-    /// Fetch team members for a client across all projects, grouped by member
-    static func fetchClientTeam(db: Database, clientId: Int64) throws -> [(Member, [(Project, ProjectMember)])] {
+    /// Get effective allocation for a specific ProjectMember for a given month.
+    static func effectiveAllocation(db: Database, pm: ProjectMember, yearMonth: String? = nil) throws -> Int {
+        let month = yearMonth ?? ProjectMemberAllocation.currentYearMonth
+        guard let pmId = pm.id else { return pm.allocationPct }
+        return try ProjectMemberAllocation.effectiveAllocation(db: db, projectMemberId: pmId, yearMonth: month)
+    }
+
+    /// Fetch team members for a client across all projects, grouped by member.
+    /// Uses monthly allocations for the specified month.
+    static func fetchClientTeam(db: Database, clientId: Int64, yearMonth: String? = nil) throws -> [(Member, [(Project, ProjectMember, Int)])] {
+        let month = yearMonth ?? ProjectMemberAllocation.currentYearMonth
         let projects = try Project
             .filter(Project.Columns.clientId == clientId)
             .fetchAll(db)
 
-        var memberAssignments: [Int64: (Member, [(Project, ProjectMember)])] = [:]
+        // (Member, [(Project, ProjectMember, effectiveAllocationPct)])
+        var memberAssignments: [Int64: (Member, [(Project, ProjectMember, Int)])] = [:]
 
         for project in projects {
             guard let projectId = project.id else { continue }
@@ -227,21 +228,24 @@ enum TeamDataQuery {
                 .fetchAll(db)
 
             for pm in assignments {
-                guard let member = try Member.fetchOne(db, id: pm.memberId) else { continue }
+                guard let pmId = pm.id,
+                      let member = try Member.fetchOne(db, id: pm.memberId) else { continue }
+                let effectivePct = try ProjectMemberAllocation.effectiveAllocation(
+                    db: db, projectMemberId: pmId, yearMonth: month
+                )
                 if var existing = memberAssignments[pm.memberId] {
-                    existing.1.append((project, pm))
+                    existing.1.append((project, pm, effectivePct))
                     memberAssignments[pm.memberId] = existing
                 } else {
-                    memberAssignments[pm.memberId] = (member, [(project, pm)])
+                    memberAssignments[pm.memberId] = (member, [(project, pm, effectivePct)])
                 }
             }
         }
 
-        // Sort by total client allocation descending, then by grade
         return memberAssignments.values
             .sorted { a, b in
-                let aTotal = a.1.reduce(0) { $0 + $1.1.allocationPct }
-                let bTotal = b.1.reduce(0) { $0 + $1.1.allocationPct }
+                let aTotal = a.1.reduce(0) { $0 + $1.2 }
+                let bTotal = b.1.reduce(0) { $0 + $1.2 }
                 if aTotal != bTotal { return aTotal > bTotal }
                 return a.0.grade.sortOrder > b.0.grade.sortOrder
             }

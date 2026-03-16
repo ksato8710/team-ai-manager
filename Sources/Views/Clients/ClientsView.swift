@@ -116,7 +116,7 @@ struct ClientDetailView: View {
     @EnvironmentObject var appState: AppState
     @State private var projects: [Project] = []
     @State private var selectedProject: Project?
-    @State private var clientTeam: [(Member, [(Project, ProjectMember)])] = []
+    @State private var clientTeam: [(Member, [(Project, ProjectMember, Int)])] = []
     @State private var totalAllocations: [Int64: Int] = [:]
 
     var body: some View {
@@ -173,7 +173,7 @@ struct ClientDetailView: View {
                         TeamStructureHeader(
                             memberCount: clientTeam.count,
                             totalAllocation: clientTeam.reduce(0) { sum, item in
-                                sum + item.1.reduce(0) { $0 + $1.1.allocationPct }
+                                sum + item.1.reduce(0) { $0 + $1.2 }
                             },
                             label: "体制"
                         )
