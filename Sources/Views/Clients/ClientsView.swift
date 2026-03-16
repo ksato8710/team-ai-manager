@@ -74,7 +74,7 @@ struct ClientsView: View {
                 }
                 .listStyle(.inset)
             }
-            .frame(minWidth: 300)
+            .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 420)
         } detail: {
             if let client = selectedClient {
                 ClientDetailView(client: client)
@@ -115,6 +115,7 @@ struct ClientDetailView: View {
     let client: Client
     @EnvironmentObject var appState: AppState
     @State private var projects: [Project] = []
+    @State private var selectedProject: Project?
 
     var body: some View {
         ScrollView {
@@ -168,15 +169,23 @@ struct ClientDetailView: View {
                     Text("Projects (\(projects.count))")
                         .font(.headline)
                     ForEach(projects) { project in
-                        HStack {
-                            Text(project.name)
-                                .font(.subheadline)
-                            Spacer()
-                            StatusBadge(status: project.status.displayName, color: project.status == .active ? .green : .gray)
+                        Button {
+                            selectedProject = project
+                        } label: {
+                            HStack {
+                                Text(project.name)
+                                    .font(.subheadline)
+                                Spacer()
+                                StatusBadge(status: project.status.displayName, color: projectStatusColor(project.status))
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(8)
+                            .background(Color(nsColor: .controlBackgroundColor))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
-                        .padding(8)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -184,6 +193,21 @@ struct ClientDetailView: View {
         }
         .onAppear { loadProjects() }
         .onChange(of: client) { loadProjects() }
+        .sheet(item: $selectedProject) { project in
+            ProjectDetailSheet(project: project, client: client)
+                .environmentObject(appState)
+        }
+    }
+
+    private func projectStatusColor(_ status: ProjectStatus) -> Color {
+        switch status {
+        case .discovery: return .purple
+        case .proposal: return .blue
+        case .active: return .green
+        case .onHold: return .orange
+        case .completed: return .gray
+        case .cancelled: return .red
+        }
     }
 
     private func loadProjects() {
@@ -195,5 +219,32 @@ struct ClientDetailView: View {
         } catch {
             print("Load client projects error: \(error)")
         }
+    }
+}
+
+// MARK: - Project Detail Sheet (shown from Clients view)
+
+struct ProjectDetailSheet: View {
+    let project: Project
+    let client: Client?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(project.name)
+                    .font(.headline)
+                Spacer()
+                Button("閉じる") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding()
+            .background(Color(nsColor: .controlBackgroundColor))
+
+            Divider()
+
+            ProjectDetailView(project: project, client: client)
+        }
+        .frame(width: 600, height: 500)
     }
 }

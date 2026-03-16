@@ -72,7 +72,7 @@ struct MembersView: View {
                 }
                 .listStyle(.inset)
             }
-            .frame(minWidth: 300)
+            .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 420)
         } detail: {
             if let member = selectedMember {
                 MemberDetailView(member: member, role: roles[member.roleId ?? 0], onMemberUpdated: loadData)

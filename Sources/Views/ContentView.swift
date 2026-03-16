@@ -11,7 +11,7 @@ struct ContentView: View {
         } detail: {
             detailView
         }
-        .navigationSplitViewStyle(.prominentDetail)
+        .navigationSplitViewStyle(.balanced)
         .onAppear {
             do {
                 try SeedData.seedIfEmpty(db: appState.database)

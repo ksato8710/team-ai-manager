@@ -93,7 +93,7 @@ struct ProjectsView: View {
                 }
                 .listStyle(.inset)
             }
-            .frame(minWidth: 320)
+            .navigationSplitViewColumnWidth(min: 300, ideal: 340, max: 450)
         } detail: {
             if let project = selectedProject {
                 ProjectDetailView(project: project, client: clients[project.clientId ?? 0])
