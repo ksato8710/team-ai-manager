@@ -98,7 +98,7 @@ struct KnowledgeView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                             if let authorId = item.authorId, let author = authors[authorId] {
                                 HStack(spacing: 4) {
-                                    AvatarView(name: author.name, size: 20)
+                                    AvatarView(name: author.name, size: 20, avatarUrl: author.avatarUrl)
                                     Text(author.name)
                                         .font(.caption)
                                 }

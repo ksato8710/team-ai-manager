@@ -60,7 +60,7 @@ struct TeamMemberCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AvatarView(name: member.name, size: 36)
+            AvatarView(name: member.name, size: 36, avatarUrl: member.avatarUrl)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -112,7 +112,7 @@ struct ClientTeamMemberCard: View {
         VStack(alignment: .leading, spacing: 8) {
             // Member header
             HStack(spacing: 10) {
-                AvatarView(name: member.name, size: 32)
+                AvatarView(name: member.name, size: 32, avatarUrl: member.avatarUrl)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(member.name)

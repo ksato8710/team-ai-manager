@@ -76,7 +76,7 @@ struct SkillsMatrixView: View {
                         ForEach(members) { member in
                             HStack(spacing: 0) {
                                 HStack(spacing: 6) {
-                                    AvatarView(name: member.name, size: 24)
+                                    AvatarView(name: member.name, size: 24, avatarUrl: member.avatarUrl)
                                     Text(member.name)
                                         .font(.caption)
                                         .lineLimit(1)

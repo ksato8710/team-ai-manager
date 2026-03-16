@@ -411,7 +411,7 @@ struct SkillDetailView: View {
 
                         ForEach(members, id: \.0.id) { member, proficiency in
                             HStack(spacing: 10) {
-                                AvatarView(name: member.name, size: 30)
+                                AvatarView(name: member.name, size: 30, avatarUrl: member.avatarUrl)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(member.name)
