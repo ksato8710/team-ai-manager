@@ -112,7 +112,7 @@ struct ClientsView: View {
 }
 
 struct ClientDetailView: View {
-    let client: Client
+    @State var client: Client
     @EnvironmentObject var appState: AppState
     @State private var projects: [Project] = []
     @State private var selectedProject: Project?
@@ -242,9 +242,8 @@ struct ClientDetailView: View {
         .onChange(of: client) { loadProjects() }
         .sheet(isPresented: $showingSlackEdit) {
             SlackChannelEditSheet(channelId: $slackChannelId) { newId in
-                var updated = client
-                updated.slackChannelId = newId.isEmpty ? nil : newId
-                try? appState.database.write { db in try updated.update(db) }
+                client.slackChannelId = newId.isEmpty ? nil : newId
+                try? appState.database.write { db in try client.update(db) }
             }
         }
         .sheet(item: $selectedProject) { project in
@@ -283,6 +282,10 @@ struct ClientDetailView: View {
 
     private func loadProjects() {
         guard let id = client.id else { return }
+        // Refresh client from DB
+        if let fresh = try? appState.database.read({ db in try Client.fetchOne(db, id: id) }) {
+            client = fresh
+        }
         do {
             projects = try appState.database.read { db in
                 try Project.filter(Project.Columns.clientId == id).order(Project.Columns.status).fetchAll(db)

@@ -176,7 +176,7 @@ struct ProjectRow: View {
 }
 
 struct ProjectDetailView: View {
-    let project: Project
+    @State var project: Project
     let client: Client?
     @EnvironmentObject var appState: AppState
     /// (ProjectMember, Member, effectiveAllocationPct for current month)
@@ -285,9 +285,8 @@ struct ProjectDetailView: View {
         .onChange(of: project) { loadDetails() }
         .sheet(isPresented: $showingSlackEdit) {
             SlackChannelEditSheet(channelId: $slackChannelId) { newId in
-                var updated = project
-                updated.slackChannelId = newId.isEmpty ? nil : newId
-                try? appState.database.write { db in try updated.update(db) }
+                project.slackChannelId = newId.isEmpty ? nil : newId
+                try? appState.database.write { db in try project.update(db) }
             }
         }
     }
@@ -311,6 +310,10 @@ struct ProjectDetailView: View {
 
     private func loadDetails() {
         guard let id = project.id else { return }
+        // Refresh project from DB
+        if let fresh = try? appState.database.read({ db in try Project.fetchOne(db, id: id) }) {
+            project = fresh
+        }
         let month = ProjectMemberAllocation.currentYearMonth
         do {
             (assignedMembers, totalAllocations) = try appState.database.read { db in
