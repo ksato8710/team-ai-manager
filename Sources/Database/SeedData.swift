@@ -3,15 +3,48 @@ import GRDB
 
 /// Seeds the database from JSON files in Data/organization/ or Data/organization.sample/
 struct SeedData {
+    private static let seedHashKey = "seedDataHash"
+
+    /// Seed files that are tracked for changes
+    private static let seedFiles = [
+        "roles.json", "skills.json", "clients.json", "members.json",
+        "projects.json", "assignments.json", "knowledge.json", "insights.json"
+    ]
+
+    /// Seed if empty, or re-sync if seed data files have changed
     static func seedIfEmpty(db: DatabaseManager) throws {
-        let count = try db.read { db in
-            try Member.fetchCount(db)
-        }
-        guard count == 0 else { return }
-
         let dataDir = resolveDataDirectory()
-        print("SEED: Loading data from \(dataDir.path)")
+        let currentHash = computeSeedHash(from: dataDir)
+        let storedHash = UserDefaults.standard.string(forKey: seedHashKey)
 
+        let isEmpty = try db.read { db in
+            try Member.fetchCount(db) == 0
+        }
+
+        if isEmpty {
+            print("SEED: Database is empty, seeding...")
+            try performSeed(db: db, from: dataDir)
+            UserDefaults.standard.set(currentHash, forKey: seedHashKey)
+        } else if currentHash != storedHash {
+            print("SEED: Seed data changed (hash mismatch), re-syncing...")
+            try resync(db: db, from: dataDir)
+            UserDefaults.standard.set(currentHash, forKey: seedHashKey)
+        }
+    }
+
+    /// Force re-sync: clear organization data and re-seed from JSON.
+    /// Preserves user-created data (project charters, charter conversations).
+    static func forceResync(db: DatabaseManager) throws {
+        let dataDir = resolveDataDirectory()
+        try resync(db: db, from: dataDir)
+        let currentHash = computeSeedHash(from: dataDir)
+        UserDefaults.standard.set(currentHash, forKey: seedHashKey)
+    }
+
+    // MARK: - Internal
+
+    private static func performSeed(db: DatabaseManager, from dataDir: URL) throws {
+        print("SEED: Loading data from \(dataDir.path)")
         try db.write { db in
             let roleIds = try seedRoles(db: db, from: dataDir)
             let skillIds = try seedSkills(db: db, from: dataDir)
@@ -22,6 +55,43 @@ struct SeedData {
             try seedKnowledge(db: db, from: dataDir, memberIds: memberIds)
             try seedInsights(db: db, from: dataDir, memberIds: memberIds, projectIds: projectIds)
         }
+    }
+
+    private static func resync(db: DatabaseManager, from dataDir: URL) throws {
+        print("SEED: Clearing organization data (preserving charters)...")
+        // Clear seeded tables in dependency order. Preserve project_charters & charter_conversations.
+        try db.write { db in
+            try db.execute(sql: "DELETE FROM ai_insights")
+            try db.execute(sql: "DELETE FROM activity_logs")
+            try db.execute(sql: "DELETE FROM knowledge")
+            try db.execute(sql: "DELETE FROM project_members")
+            try db.execute(sql: "DELETE FROM member_skills")
+            try db.execute(sql: "DELETE FROM skill_level_definitions")
+            try db.execute(sql: "DELETE FROM projects")
+            try db.execute(sql: "DELETE FROM members")
+            try db.execute(sql: "DELETE FROM clients")
+            try db.execute(sql: "DELETE FROM skills")
+            try db.execute(sql: "DELETE FROM roles")
+            try db.execute(sql: "DELETE FROM scan_sources")
+        }
+        try performSeed(db: db, from: dataDir)
+        print("SEED: Re-sync complete")
+    }
+
+    /// Compute a hash from seed file contents to detect changes
+    private static func computeSeedHash(from dataDir: URL) -> String {
+        var combined = ""
+        for file in seedFiles {
+            let url = dataDir.appendingPathComponent(file)
+            if let data = try? Data(contentsOf: url) {
+                combined += "\(file):\(data.count):\(data.hashValue);"
+            }
+        }
+        // Simple hash: use string hash as hex
+        let hash = combined.utf8.reduce(into: UInt64(5381)) { result, byte in
+            result = result &* 33 &+ UInt64(byte)
+        }
+        return String(hash, radix: 16)
     }
 
     // MARK: - Data Directory Resolution
@@ -133,6 +203,7 @@ struct SeedData {
             let domain: String?
             let relationshipStatus: String?
             let website: String?
+            let notes: String?
         }
         let items = try loadJSON([ClientJSON].self, from: dir, file: "clients.json")
         var ids: [String: Int64] = [:]
@@ -144,7 +215,7 @@ struct SeedData {
             let status = RelationshipStatus(rawValue: item.relationshipStatus ?? "prospect") ?? .prospect
             var client = Client(
                 name: item.name, industry: industry, domain: item.domain,
-                relationshipStatus: status, website: item.website
+                relationshipStatus: status, notes: item.notes, website: item.website
             )
             try client.insert(db)
             ids[item.name] = client.id!

@@ -7,52 +7,11 @@ struct DocDataModelView: View {
     @State private var selectedEntity: EntityDoc?
 
     var body: some View {
-        NavigationSplitView {
-            VStack(spacing: 0) {
-                HStack {
-                    Text("Data Model")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 12)
-
-                Text("テーブル構造とリレーション")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-                    .padding(.top, 4)
-
-                List(selection: $selectedEntity) {
-                    Section("コアエンティティ") {
-                        ForEach(EntityDoc.coreEntities) { entity in
-                            EntityListRow(entity: entity, count: stats.counts[entity.tableName] ?? 0)
-                                .tag(entity)
-                        }
-                    }
-                    Section("リレーション（中間テーブル）") {
-                        ForEach(EntityDoc.junctionEntities) { entity in
-                            EntityListRow(entity: entity, count: stats.counts[entity.tableName] ?? 0)
-                                .tag(entity)
-                        }
-                    }
-                    Section("システム") {
-                        ForEach(EntityDoc.systemEntities) { entity in
-                            EntityListRow(entity: entity, count: stats.counts[entity.tableName] ?? 0)
-                                .tag(entity)
-                        }
-                    }
-                }
-                .listStyle(.inset)
-            }
-            .frame(minWidth: 280)
-        } detail: {
+        Group {
             if let entity = selectedEntity {
-                EntityDetailDoc(entity: entity, count: stats.counts[entity.tableName] ?? 0)
+                EntityDetailDoc(entity: entity, count: stats.counts[entity.tableName] ?? 0, onBack: { selectedEntity = nil })
             } else {
-                DataModelOverview(stats: stats)
+                DataModelOverview(stats: stats, counts: stats.counts, onSelectEntity: { selectedEntity = $0 })
             }
         }
         .onAppear { loadStats() }
@@ -87,6 +46,8 @@ struct DataModelStats {
 
 struct DataModelOverview: View {
     let stats: DataModelStats
+    let counts: [String: Int]
+    var onSelectEntity: ((EntityDoc) -> Void)?
 
     var body: some View {
         ScrollView {
@@ -128,9 +89,18 @@ struct DataModelOverview: View {
                     .font(.title3)
                     .fontWeight(.bold)
 
+                Text("クリックして詳細を表示")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     ForEach(EntityDoc.allEntities) { entity in
-                        TableSummaryCard(entity: entity, count: stats.counts[entity.tableName] ?? 0)
+                        Button {
+                            onSelectEntity?(entity)
+                        } label: {
+                            TableSummaryCard(entity: entity, count: counts[entity.tableName] ?? 0)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -446,10 +416,23 @@ struct EntityListRow: View {
 struct EntityDetailDoc: View {
     let entity: EntityDoc
     let count: Int
+    var onBack: (() -> Void)?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                // Back button
+                Button {
+                    onBack?()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("データモデル概要")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
                 // Header
                 HStack(spacing: 12) {
                     Image(systemName: entity.icon)

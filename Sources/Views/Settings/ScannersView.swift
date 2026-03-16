@@ -206,12 +206,47 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @AppStorage("databasePath") private var databasePath = ""
+    @State private var resyncMessage: String?
+    @State private var isResyncing = false
 
     var body: some View {
         Form {
-            Text("Database is stored in Application Support/TeamAIManager/")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Section("データベース") {
+                Text("保存先: ~/Library/Application Support/TeamAIManager/")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("シードデータ同期") {
+                Text("Data/organization/ 内の JSON ファイルを更新した場合、手動で再同期できます。プロジェクト憲章のデータは保持されます。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    Button("シードデータを再同期") {
+                        isResyncing = true
+                        resyncMessage = nil
+                        do {
+                            try SeedData.forceResync(db: DatabaseManager.shared)
+                            resyncMessage = "再同期が完了しました。アプリを再起動してください。"
+                        } catch {
+                            resyncMessage = "エラー: \(error.localizedDescription)"
+                        }
+                        isResyncing = false
+                    }
+                    .disabled(isResyncing)
+
+                    if isResyncing {
+                        ProgressView().scaleEffect(0.7)
+                    }
+                }
+
+                if let message = resyncMessage {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(message.hasPrefix("エラー") ? .red : .green)
+                }
+            }
         }
         .formStyle(.grouped)
         .padding()

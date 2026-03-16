@@ -7,10 +7,11 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(selection: $appState.selectedSection)
+                .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 360)
         } detail: {
             detailView
         }
-        .navigationSplitViewStyle(.balanced)
+        .navigationSplitViewStyle(.prominentDetail)
         .onAppear {
             do {
                 try SeedData.seedIfEmpty(db: appState.database)
@@ -100,7 +101,7 @@ struct SidebarView: View {
         }
         .listStyle(.sidebar)
         .navigationTitle("Team AI Manager")
-        .frame(minWidth: 200)
+        .frame(minWidth: 240)
     }
 
     private func sidebarItem(_ section: SidebarSection) -> some View {
